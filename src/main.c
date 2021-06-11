@@ -7,6 +7,7 @@
 #include <allonet/server.h>
 
 static int marketplace_pid = -1;
+static alloserver *serv;
 
 static void
 child_handler(int sig)
@@ -24,7 +25,7 @@ child_handler(int sig)
     }
 }
 
-static void ensure_marketplace_running()
+static void ensure_marketplace_running(void)
 {
     if(marketplace_pid == -1)
     {
@@ -34,6 +35,20 @@ static void ensure_marketplace_running()
             fprintf(stderr, "Launching marketplace...\n");
             exit(system("cd marketplace; ./allo/assist run alloplace://localhost"));
         }
+    }
+}
+
+double get_ts_monod(void);
+double last_stats_print = 0;
+static void maybe_print_stats(void)
+{
+    double now = get_ts_monod();
+    if(now > last_stats_print + 5.0)
+    {
+        last_stats_print = now;
+        char stats[1024];
+        alloserv_get_stats(serv, stats, 1024);
+        fprintf(stderr, "\nStats at %.0f:\n%s\n", now, stats);
     }
 }
 
@@ -47,7 +62,7 @@ int main(int argc, const char **argv)
     const char *placename = argv[1];
 
     printf("Launching alloplace2 as '%s'\n", placename);
-    alloserver *serv = alloserv_start_standalone(0, 21337, placename);
+    serv = alloserv_start_standalone(0, 21337, placename);
   
     if (serv == NULL)
     {
@@ -72,6 +87,7 @@ int main(int argc, const char **argv)
             return false;
         }
         ensure_marketplace_running();
+        maybe_print_stats();
     }
 
     alloserv_stop_standalone();

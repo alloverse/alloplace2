@@ -1,0 +1,3 @@
+[submodule "deps/allonet"]
+	path = deps/allonet
+	url = https://github.com/alloverse/allonet.git

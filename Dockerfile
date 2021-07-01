@@ -1,6 +1,7 @@
 FROM gcc:9
 
 WORKDIR /alloplace2
+EXPOSE 21337/udp
 
 RUN apt-get update && apt-get install -y build-essential \
     cmake \

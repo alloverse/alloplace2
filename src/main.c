@@ -8,6 +8,7 @@
 
 static int marketplace_pid = -1;
 static alloserver *serv;
+static int port;
 
 static void
 child_handler(int sig)
@@ -33,7 +34,9 @@ static void ensure_marketplace_running(void)
         if(marketplace_pid == 0)
         {
             fprintf(stderr, "Launching marketplace...\n");
-            exit(system("cd marketplace; ./allo/assist run alloplace://localhost"));
+            char marketcmd[1024];
+            sprintf(marketcmd, "cd marketplace; ./allo/assist run alloplace://localhost:%d", port);
+            exit(system(marketcmd));
         }
     }
 }
@@ -54,15 +57,15 @@ static void maybe_print_stats(void)
 
 int main(int argc, const char **argv)
 {
-    if(argc < 2)
-    {
-        fprintf(stderr, "Usage: alloplace2 [place name]\n");
-        return 1;
+    const char *placename = getenv("ALLOPLACE_NAME");
+    if(!placename) placename = "Unnamed place";
+    const char *portstr = getenv("ALLOPLACE_PORT");
+    if(!portstr || sscanf(portstr, "%d", &port) == 0) {
+        port = 21337;
     }
-    const char *placename = argv[1];
 
-    printf("Launching alloplace2 as '%s'\n", placename);
-    serv = alloserv_start_standalone(0, 21337, placename);
+    printf("Launching alloplace2 as '%s' on *:%d\n", placename, port);
+    serv = alloserv_start_standalone(0, port, placename);
   
     if (serv == NULL)
     {
@@ -77,7 +80,9 @@ int main(int argc, const char **argv)
     sa.sa_handler = child_handler;
     sigaction(SIGCHLD, &sa, NULL);
 
-    int house_ok = system("cd marketplace/apps/allo-house; ./allo/assist run alloplace://localhost &");
+    char housecmd[1024];
+    sprintf(housecmd, "cd marketplace/apps/allo-house; ./allo/assist run alloplace://localhost:%d &", port);
+    int house_ok = system(housecmd);
     
     printf("alloplace2 is now entering runloop.\n");
     while (1) {

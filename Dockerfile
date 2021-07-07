@@ -25,4 +25,4 @@ RUN cd build; cmake ..; make
 
 COPY build /alloplace2/build
 
-CMD cd /alloplace2; ./build/alloplace2 $ALLOPLACE_NAME
+CMD cd /alloplace2; ./build/alloplace2

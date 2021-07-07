@@ -28,6 +28,8 @@ child_handler(int sig)
 
 static void ensure_marketplace_running(void)
 {
+    if(marketplace_pid == -2) return;
+
     if(marketplace_pid == -1)
     {
         marketplace_pid = fork();
@@ -60,8 +62,13 @@ int main(int argc, const char **argv)
     const char *placename = getenv("ALLOPLACE_NAME");
     if(!placename) placename = "Unnamed place";
     const char *portstr = getenv("ALLOPLACE_PORT");
-    if(!portstr || sscanf(portstr, "%d", &port) == 0) {
+    if(!portstr || sscanf(portstr, "%d", &port) == 0)
+    {
         port = 21337;
+    }
+    if(getenv("ALLOPLACE_DISABLE_MARKETPLACE"))
+    {
+        marketplace_pid = -2;
     }
 
     printf("Launching alloplace2 as '%s' on *:%d\n", placename, port);

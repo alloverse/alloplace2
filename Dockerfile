@@ -23,6 +23,4 @@ COPY build/deps/allonet/include /alloplace2/build/deps/allonet/include
 
 RUN cd build; cmake ..; make
 
-COPY build /alloplace2/build
-
 CMD cd /alloplace2; ./build/alloplace2

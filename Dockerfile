@@ -1,17 +1,22 @@
-FROM gcc:9
+FROM ubuntu:20.04
+# was gcc:9, is ubuntu just for libretro until we can pull out apps out of marketplace
 
 WORKDIR /alloplace2
 EXPOSE 21337/udp
 
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y build-essential \
-    cmake \
+    cmake curl \
     libgme-dev libcairo2 libpoppler-glib-dev \
+    retroarch libretro-nestopia libretro-genesisplusgx libretro-snes9x \
+    libavcodec-dev libavformat-dev libswresample-dev libswscale-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # 1. configure marketplace
 ADD marketplace /alloplace2/marketplace
 RUN cd marketplace && bash bootstrap.sh
+RUN cd marketplace/apps/flynncade && make
 
 COPY deps /alloplace2/deps
 COPY src /alloplace2/src

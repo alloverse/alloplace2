@@ -87,9 +87,9 @@ int main(int argc, const char **argv)
     sa.sa_handler = child_handler;
     sigaction(SIGCHLD, &sa, NULL);
 
-    char housecmd[1024];
-    sprintf(housecmd, "cd marketplace/apps/allo-house; ./allo/assist run alloplace://localhost:%d &", port);
-    int house_ok = system(housecmd);
+    char decocmd[1024];
+    sprintf(decocmd, "cd marketplace/apps/allo-decorator; ./allo/assist run alloplace://localhost:%d &", port);
+    int house_ok = system(decocmd);
     
     printf("alloplace2 is now entering runloop.\n");
     while (1) {

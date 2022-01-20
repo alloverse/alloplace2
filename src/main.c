@@ -26,6 +26,24 @@ child_handler(int sig)
     }
 }
 
+// otherwise the apps will receive udp traffic that is sent to the server (!!)
+void make_forked_env_safe(void)
+{
+    for(int i = 2; i < 1023; i++) {
+        close(i);
+    }
+}
+
+void system2(const char *cmd)
+{
+    pid_t bg = fork();
+    if(bg == 0)
+    {
+        make_forked_env_safe();
+        exit(system(cmd));
+    }
+}
+
 static void ensure_marketplace_running(void)
 {
     if(marketplace_pid == -2) return;
@@ -36,6 +54,7 @@ static void ensure_marketplace_running(void)
         if(marketplace_pid == 0)
         {
             fprintf(stderr, "Launching marketplace...\n");
+            make_forked_env_safe();
             char marketcmd[1024];
             sprintf(marketcmd, "cd marketplace; ./allo/assist run alloplace://localhost:%d", port);
             exit(system(marketcmd));
@@ -89,7 +108,7 @@ int main(int argc, const char **argv)
 
     char decocmd[1024];
     sprintf(decocmd, "cd marketplace/apps/allo-decorator; ./allo/assist run alloplace://localhost:%d &", port);
-    int house_ok = system(decocmd);
+    system2(decocmd);
     
     printf("alloplace2 is now entering runloop.\n");
     while (1) {

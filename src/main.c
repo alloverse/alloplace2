@@ -7,6 +7,7 @@
 #include <allonet/server.h>
 
 static int marketplace_pid = -1;
+static int settings_pid = -1;
 static alloserver *serv;
 static int port;
 
@@ -22,6 +23,11 @@ child_handler(int sig)
         {
             fprintf(stderr, "Reaping marketplace at %d\n", pid);
             marketplace_pid = -1; // trigger relaunch
+        }
+        else if(pid == settings_pid)
+        {
+            fprintf(stderr, "Reaping settings at %d\n", pid);
+            settings_pid = -1; // trigger relaunch
         }
     }
 }
@@ -62,6 +68,25 @@ static void ensure_marketplace_running(void)
     }
 }
 
+static void ensure_settings_running(void)
+{
+    if(settings_pid == -2) return;
+
+    if(settings_pid == -1)
+    {
+        settings_pid = fork();
+        if(settings_pid == 0)
+        {
+            fprintf(stderr, "Launching settings app...\n");
+            make_forked_env_safe();
+            char cmd[1024];
+            sprintf(cmd, "cd placesettings; ./allo/assist run alloplace://localhost:%d", port);
+            exit(system(cmd));
+        }
+    }
+}
+
+
 double get_ts_monod(void);
 double last_stats_print = 0;
 static void maybe_print_stats(void)
@@ -88,6 +113,7 @@ int main(int argc, const char **argv)
     if(getenv("ALLOPLACE_DISABLE_MARKETPLACE"))
     {
         marketplace_pid = -2;
+        settings_pid = -2;
     }
 
     printf("Launching alloplace2 as '%s' on *:%d\n", placename, port);
@@ -118,6 +144,7 @@ int main(int argc, const char **argv)
             return false;
         }
         ensure_marketplace_running();
+        ensure_settings_running();
         maybe_print_stats();
     }
 

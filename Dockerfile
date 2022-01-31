@@ -17,8 +17,12 @@ RUN apt-get update && apt-get install -y build-essential \
 ADD marketplace /alloplace2/marketplace
 RUN cd marketplace && bash bootstrap.sh
 RUN cd marketplace/apps/flynncade && make
+
+# 2. configure placesettings
+ADD placesettings /alloplace2/placesettings
 RUN cd placesettings && ./allo/assist fetch
 
+# 3. build and compile server with dependencies
 COPY deps /alloplace2/deps
 COPY src /alloplace2/src
 COPY CMakeLists.txt /alloplace2

@@ -21,12 +21,12 @@ child_handler(int sig)
     {
         if(pid == marketplace_pid)
         {
-            fprintf(stderr, "Reaping marketplace at %d\n", pid);
+            fprintf(stderr, "Reaping marketplace at %d. %d\n", pid, status);
             marketplace_pid = -1; // trigger relaunch
         }
         else if(pid == settings_pid)
         {
-            fprintf(stderr, "Reaping settings at %d\n", pid);
+            fprintf(stderr, "Reaping settings at %d. %d\n", pid, status);
             settings_pid = -1; // trigger relaunch
         }
     }
@@ -50,6 +50,19 @@ void system2(const char *cmd)
     }
 }
 
+static void launch(char *cmd)
+{
+    int child_status = system(cmd);
+    int exit_code = WEXITSTATUS(child_status);
+    if (child_status == -1 || exit_code == 127) {
+        printf("Failed to launch child process '%s' (status code: %d, exit code: %d)\n", cmd, child_status, exit_code);
+    }
+    if (exit_code != 0) {
+        printf("Child '%s' exited with error, code %d\n", cmd, exit_code);
+    }
+    exit(exit_code);
+}
+
 static void ensure_marketplace_running(void)
 {
     if(marketplace_pid == -2) return;
@@ -62,8 +75,8 @@ static void ensure_marketplace_running(void)
             fprintf(stderr, "Launching marketplace...\n");
             make_forked_env_safe();
             char marketcmd[1024];
-            sprintf(marketcmd, "cd marketplace; ./allo/assist run alloplace://localhost:%d", port);
-            exit(system(marketcmd));
+            sprintf(marketcmd, "cd marketplace; ./allo/assist run alloplace://localhost:%d 2&> bork.txt", port);
+            launch(marketcmd);
         }
     }
 }
@@ -81,7 +94,7 @@ static void ensure_settings_running(void)
             make_forked_env_safe();
             char cmd[1024];
             sprintf(cmd, "cd placesettings; ./allo/assist run alloplace://localhost:%d", port);
-            exit(system(cmd));
+            launch(cmd);
         }
     }
 }

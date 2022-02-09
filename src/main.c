@@ -6,6 +6,8 @@
 #include <signal.h>
 #include <allonet/server.h>
 
+double get_ts_monod(void);
+
 static int marketplace_pid = -1;
 static int settings_pid = -1;
 static alloserver *serv;
@@ -19,16 +21,25 @@ child_handler(int sig)
 
     while((pid = waitpid(-1, &status, WNOHANG)) > 0)
     {
+        char reason[255] = "(unknown exit reason)";
+        if(WIFEXITED(status)) snprintf(reason, 255, "(exited normally, code %d)", WEXITSTATUS(status));
+        if(WIFSIGNALED(status)) snprintf(reason, 255, "(terminated by signal %d)", WTERMSIG(status));
+        if(WIFCONTINUED(status)) snprintf(reason, 255, "(continued)");
+        
         if(pid == marketplace_pid)
         {
-            fprintf(stderr, "Reaping marketplace at %d. %d\n", pid, status);
+            fprintf(stderr, "Reaping marketplace at %d. %s\n", pid, reason);
             marketplace_pid = -1; // trigger relaunch
         }
         else if(pid == settings_pid)
         {
-            fprintf(stderr, "Reaping settings at %d. %d\n", pid, status);
+            fprintf(stderr, "Reaping settings at %d. %s\n", pid, reason);
             settings_pid = -1; // trigger relaunch
         }
+    }
+    if(pid < 0)
+    {
+        perror("child_handler");
     }
 }
 
@@ -63,19 +74,24 @@ static void launch(char *cmd)
     exit(exit_code);
 }
 
+static double marketplace_last_launched_at;
+
 static void ensure_marketplace_running(void)
 {
     if(marketplace_pid == -2) return;
 
-    if(marketplace_pid == -1)
+    double now = get_ts_monod();
+
+    if(marketplace_pid == -1 && now - marketplace_last_launched_at > 2.0)
     {
+        marketplace_last_launched_at = now;
         marketplace_pid = fork();
         if(marketplace_pid == 0)
         {
-            fprintf(stderr, "Launching marketplace...\n");
+            fprintf(stderr, "Launching marketplace as pid %d...\n", getpid());
             make_forked_env_safe();
             char marketcmd[1024];
-            sprintf(marketcmd, "cd marketplace; ./allo/assist run alloplace://localhost:%d 2&> bork.txt", port);
+            sprintf(marketcmd, "cd marketplace; ./allo/assist run alloplace://localhost:%d", port);
             launch(marketcmd);
         }
     }

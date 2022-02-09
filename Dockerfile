@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y build-essential \
 
 # 1. configure marketplace
 ADD marketplace /alloplace2/marketplace
-RUN cd marketplace && bash bootstrap.sh
+RUN cd marketplace && bash scripts/bootstrap.sh
 RUN cd marketplace/apps/flynncade && make
 
 # 2. configure placesettings

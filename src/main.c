@@ -52,7 +52,7 @@ child_handler(int sig)
 // otherwise the apps will receive udp traffic that is sent to the server (!!)
 void make_forked_env_safe(void)
 {
-    for(int i = 2; i < 1023; i++) {
+    for(int i = 3; i < 1023; i++) {
         close(i);
     }
 }

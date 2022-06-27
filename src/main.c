@@ -9,6 +9,7 @@
 double get_ts_monod(void);
 
 static int marketplace_pid = -1;
+static int serve_pid = -1;
 static int settings_pid = -1;
 static alloserver *serv;
 static int port;
@@ -35,6 +36,11 @@ child_handler(int sig)
         {
             fprintf(stderr, "Reaping settings at %d. %s\n", pid, reason);
             settings_pid = -1; // trigger relaunch
+        }
+        else if(pid == serve_pid)
+        {
+            fprintf(stderr, "Reaping serve at %d. %s\n", pid, reason);
+            serve_pid = -1; // trigger relaunch
         }
     }
     if(pid < 0)
@@ -115,6 +121,24 @@ static void ensure_settings_running(void)
     }
 }
 
+static void ensure_serve_running(void)
+{
+    if(serve_pid == -2) return;
+
+    if(serve_pid == -1)
+    {
+        serve_pid = fork();
+        if(serve_pid == 0)
+        {
+            fprintf(stderr, "Launching serve...\n");
+            make_forked_env_safe();
+            char cmd[1024];
+            sprintf(cmd, "cd marketplace; env APPS_ROOT=./apps/ python3 allo/serve.py");
+            launch(cmd);
+        }
+    }
+}
+
 
 double get_ts_monod(void);
 double last_stats_print = 0;
@@ -143,6 +167,7 @@ int main(int argc, const char **argv)
     {
         marketplace_pid = -2;
         settings_pid = -2;
+        serve_pid = -2;
     }
 
     printf("Launching alloplace2 as '%s' on *:%d\n", placename, port);
@@ -174,6 +199,7 @@ int main(int argc, const char **argv)
         }
         ensure_marketplace_running();
         ensure_settings_running();
+        ensure_serve_running();
         maybe_print_stats();
     }
 

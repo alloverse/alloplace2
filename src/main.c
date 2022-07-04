@@ -142,10 +142,11 @@ static void ensure_serve_running(void)
 
 double get_ts_monod(void);
 double last_stats_print = 0;
+bool do_print_stats = false;
 static void maybe_print_stats(void)
 {
     double now = get_ts_monod();
-    if(now > last_stats_print + 5.0)
+    if(now > last_stats_print + 5.0 && do_print_stats)
     {
         last_stats_print = now;
         char stats[1024];
@@ -175,6 +176,10 @@ int main(int argc, const char **argv)
         marketplace_pid = -2;
         settings_pid = -2;
         serve_pid = -2;
+    }
+    if(getenv("ALLOPLACE_PRINT_STATS"))
+    {
+        do_print_stats = true;
     }
 
     printf("======\n\nServing the Alloverse Place \"%s\" on %s:%d\n\n======\n", placename, hostname, port);

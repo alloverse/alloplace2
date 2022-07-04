@@ -156,6 +156,13 @@ static void maybe_print_stats(void)
 
 int main(int argc, const char **argv)
 {
+    const char *hostname = getenv("ALLOPLACE_HOST");
+    if(!hostname)
+    {
+        fprintf(stderr, "!! WARNING: Please provide an internet-public hostname or IP in the environment variable ALLOPLACE_HOST. "
+                        "Otherwise, AlloApps on the internet will not be able to connect to this Place.\n");
+        hostname = "localhost";
+    }
     const char *placename = getenv("ALLOPLACE_NAME");
     if(!placename) placename = "Unnamed place";
     const char *portstr = getenv("ALLOPLACE_PORT");
@@ -170,8 +177,8 @@ int main(int argc, const char **argv)
         serve_pid = -2;
     }
 
-    printf("Launching alloplace2 as '%s' on *:%d\n", placename, port);
-    serv = alloserv_start_standalone(0, port, placename);
+    printf("======\n\nServing the Alloverse Place \"%s\" on %s:%d\n\n======\n", placename, hostname, port);
+    serv = alloserv_start_standalone(hostname, 0, port, placename);
   
     if (serv == NULL)
     {

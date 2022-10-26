@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -13,6 +14,7 @@ static int serve_pid = -1;
 static int settings_pid = -1;
 static alloserver *serv;
 static int port;
+static char *hostname;
 
 static void
 child_handler(int sig)
@@ -97,7 +99,7 @@ static void ensure_marketplace_running(void)
             fprintf(stderr, "Launching marketplace as pid %d...\n", getpid());
             make_forked_env_safe();
             char marketcmd[1024];
-            sprintf(marketcmd, "cd marketplace; ./allo/assist run alloplace://localhost:%d", port);
+            sprintf(marketcmd, "cd marketplace; ./allo/assist run alloplace://%s:%d", hostname, port);
             launch(marketcmd);
         }
     }
@@ -115,7 +117,7 @@ static void ensure_settings_running(void)
             fprintf(stderr, "Launching settings app...\n");
             make_forked_env_safe();
             char cmd[1024];
-            sprintf(cmd, "cd placesettings; ./allo/assist run alloplace://localhost:%d", port);
+            sprintf(cmd, "cd placesettings; ./allo/assist run alloplace://%s:%d", hostname, port);
             launch(cmd);
         }
     }
@@ -157,12 +159,16 @@ static void maybe_print_stats(void)
 
 int main(int argc, const char **argv)
 {
-    const char *hostname = getenv("ALLOPLACE_HOST");
-    if(!hostname)
+    const char *ehostname = getenv("ALLOPLACE_HOST");
+    if(ehostname)
     {
-        fprintf(stderr, "!! WARNING: Please provide an internet-public hostname or IP in the environment variable ALLOPLACE_HOST. "
-                        "Otherwise, AlloApps on the internet will not be able to connect to this Place.\n");
-        hostname = "localhost";
+        hostname = strdup(ehostname);
+    }
+    else
+    {
+        hostname = strdup("localhost");
+        fprintf(stderr, "\n\n!! WARNING:\nPlease provide an internet-public hostname or IP in the environment variable ALLOPLACE_HOST. "
+                        "Otherwise, AlloApps on the internet will not be able to connect to this Place.\n\n\n");
     }
     const char *placename = getenv("ALLOPLACE_NAME");
     if(!placename) placename = "Unnamed place";
@@ -199,7 +205,7 @@ int main(int argc, const char **argv)
     sigaction(SIGCHLD, &sa, NULL);
 
     char decocmd[1024];
-    sprintf(decocmd, "cd marketplace/apps/allo-decorator; ./allo/assist run alloplace://localhost:%d &", port);
+    sprintf(decocmd, "cd marketplace/apps/allo-decorator; ./allo/assist run alloplace://%s:%d &", hostname, port);
     system2(decocmd);
     
     printf("alloplace2 is now entering runloop.\n");

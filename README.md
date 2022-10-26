@@ -26,6 +26,7 @@ It does not manage things like
 You can modify runtime behavior with the following environment variables:
 
 * `ALLOPLACE_NAME="My place"` -- set the display name of the server
+* `ALLOPLACE_HOST="sandbox.places.alloverse.com"` -- set the public IP or hostname that the server is running on. Without this set, the place won't be able to launch apps within itself.
 * `ALLOPLACE_DISABLE_MARKETPLACE=true` -- don't auto-start the marketplace app
   (only really needed when you're working on the marketplace itself)
 

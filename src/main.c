@@ -24,6 +24,10 @@ struct embedded_app {
         "cd placesettings; ./allo/assist run alloplace://%s:%d", -1
     },
     {
+        "decorator",
+        "cd decorator; ./allo/assist run alloplace://%s:%d", -1
+    },
+    {
         "serve",
         "cd marketplace; env APPS_ROOT=./apps/ python3 allo/serve.py", -1
     }

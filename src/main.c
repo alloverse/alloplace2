@@ -9,9 +9,27 @@
 
 double get_ts_monod(void);
 
-static int marketplace_pid = -1;
-static int serve_pid = -1;
-static int settings_pid = -1;
+struct embedded_app {
+    const char *name;
+    const char *launchfmt;
+    int pid;
+    double last_launched_at;
+} embedded_apps[] = {
+    {
+        "marketplace",
+        "cd marketplace; ./allo/assist run alloplace://%s:%d", -1
+    },
+    {
+        "settings",
+        "cd placesettings; ./allo/assist run alloplace://%s:%d", -1
+    },
+    {
+        "serve",
+        "cd marketplace; env APPS_ROOT=./apps/ python3 allo/serve.py", -1
+    }
+};
+size_t embedded_apps_count = sizeof(embedded_apps)/sizeof(*embedded_apps);
+
 static alloserver *serv;
 static int port;
 static char *hostname;
@@ -29,20 +47,13 @@ child_handler(int sig)
         if(WIFSIGNALED(status)) snprintf(reason, 255, "(terminated by signal %d)", WTERMSIG(status));
         if(WIFCONTINUED(status)) snprintf(reason, 255, "(continued)");
         
-        if(pid == marketplace_pid)
+        for(int i = 0; i < embedded_apps_count; i++)
         {
-            fprintf(stderr, "Reaping marketplace at %d. %s\n", pid, reason);
-            marketplace_pid = -1; // trigger relaunch
-        }
-        else if(pid == settings_pid)
-        {
-            fprintf(stderr, "Reaping settings at %d. %s\n", pid, reason);
-            settings_pid = -1; // trigger relaunch
-        }
-        else if(pid == serve_pid)
-        {
-            fprintf(stderr, "Reaping serve at %d. %s\n", pid, reason);
-            serve_pid = -1; // trigger relaunch
+            if(pid == embedded_apps[i].pid)
+            {
+                fprintf(stderr, "Reaping %s at %d. %s\n", embedded_apps[i].name, pid, reason);
+                embedded_apps[i].pid = -1; // trigger relaunch
+            }
         }
     }
     if(pid < 0)
@@ -82,67 +93,27 @@ static void launch(char *cmd)
     exit(exit_code);
 }
 
-static double marketplace_last_launched_at;
-
-static void ensure_marketplace_running(void)
+static void ensure_running(struct embedded_app *app)
 {
-    if(marketplace_pid == -2) return;
+    if(app->pid == -2) return;
 
     double now = get_ts_monod();
 
-    if(marketplace_pid == -1 && now - marketplace_last_launched_at > 2.0)
+    if(app->pid == -1 && now - app->last_launched_at > 2.0)
     {
-        marketplace_last_launched_at = now;
-        marketplace_pid = fork();
-        if(marketplace_pid == 0)
+        app->last_launched_at = now;
+        app->pid = fork();
+        if(app->pid == 0)
         {
-            fprintf(stderr, "Launching marketplace as pid %d...\n", getpid());
+            fprintf(stderr, "Launching %s as pid %d...\n", app->name, getpid());
             make_forked_env_safe();
-            char marketcmd[1024];
-            sprintf(marketcmd, "cd marketplace; ./allo/assist run alloplace://%s:%d", hostname, port);
-            launch(marketcmd);
+            char appcmd[1024];
+            sprintf(appcmd, app->launchfmt, hostname, port);
+            launch(appcmd);
         }
     }
 }
 
-static void ensure_settings_running(void)
-{
-    if(settings_pid == -2) return;
-
-    if(settings_pid == -1)
-    {
-        settings_pid = fork();
-        if(settings_pid == 0)
-        {
-            fprintf(stderr, "Launching settings app...\n");
-            make_forked_env_safe();
-            char cmd[1024];
-            sprintf(cmd, "cd placesettings; ./allo/assist run alloplace://%s:%d", hostname, port);
-            launch(cmd);
-        }
-    }
-}
-
-static void ensure_serve_running(void)
-{
-    if(serve_pid == -2) return;
-
-    if(serve_pid == -1)
-    {
-        serve_pid = fork();
-        if(serve_pid == 0)
-        {
-            fprintf(stderr, "Launching serve...\n");
-            make_forked_env_safe();
-            char cmd[1024];
-            sprintf(cmd, "cd marketplace; env APPS_ROOT=./apps/ python3 allo/serve.py");
-            launch(cmd);
-        }
-    }
-}
-
-
-double get_ts_monod(void);
 double last_stats_print = 0;
 bool do_print_stats = false;
 static void maybe_print_stats(void)
@@ -179,9 +150,8 @@ int main(int argc, const char **argv)
     }
     if(getenv("ALLOPLACE_DISABLE_MARKETPLACE"))
     {
-        marketplace_pid = -2;
-        settings_pid = -2;
-        serve_pid = -2;
+        for(int i = 0; i < embedded_apps_count; i++)
+            embedded_apps[i].pid = -2;
     }
     if(getenv("ALLOPLACE_PRINT_STATS"))
     {
@@ -203,10 +173,6 @@ int main(int argc, const char **argv)
     sa.sa_flags = 0;
     sa.sa_handler = child_handler;
     sigaction(SIGCHLD, &sa, NULL);
-
-    char decocmd[1024];
-    sprintf(decocmd, "cd marketplace/apps/allo-decorator; ./allo/assist run alloplace://%s:%d &", hostname, port);
-    system2(decocmd);
     
     printf("alloplace2 is now entering runloop.\n");
     while (1) {
@@ -215,9 +181,8 @@ int main(int argc, const char **argv)
             alloserv_stop_standalone();
             return false;
         }
-        ensure_marketplace_running();
-        ensure_settings_running();
-        ensure_serve_running();
+        for(int i = 0; i < embedded_apps_count; i++)
+            ensure_running(&embedded_apps[i]);
         maybe_print_stats();
     }
 

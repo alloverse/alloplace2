@@ -7,3 +7,6 @@
 [submodule "placesettings"]
 	path = placesettings
 	url = https://github.com/alloverse/allo-placesettings
+[submodule "decorator"]
+	path = decorator
+	url = https://github.com/alloverse/allo-decorator

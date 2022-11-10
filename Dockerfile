@@ -22,7 +22,11 @@ RUN cd marketplace/apps/flynncade && make
 ADD placesettings /alloplace2/placesettings
 RUN cd placesettings && ./allo/assist fetch
 
-# 3. build and compile server with dependencies
+# 3. configure decorator
+ADD decorator /alloplace2/decorator
+RUN cd decorator && ./allo/assist fetch
+
+# 4. build and compile server with dependencies
 COPY deps /alloplace2/deps
 COPY src /alloplace2/src
 COPY CMakeLists.txt /alloplace2
